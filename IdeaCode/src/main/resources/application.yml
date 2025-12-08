@@ -1,0 +1,35 @@
+spring:
+  mvc:
+    static-path-pattern: /**
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+#  datasource:
+#    type: com.alibaba.druid.pool.DruidDataSource
+#    driver-class-name: com.huawei.gauss.jdbc.ZenithDriver
+#    username: smith
+#    password: abcd.1234
+#    url: jdbc:zenith:@192.168.152.141:1888
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: 123456
+    url: jdbc:mysql://localhost:3306/mymonitor?characterEncoding=utf8&useSSL=false&serverTimezone=UTC
+  web:
+    resources:
+      static-locations: classpath:/static/
+python:
+  api:
+    url: "http://localhost:5000"
+    predict-endpoint: "/predict"
+    current-endpoint: "/current-usage"
+server:
+  port: 8080
+  servlet:
+    context-path: /
+monitoring:
+  ip-block:
+    threshold: 50    # 1分钟内访问次数阈值
+    duration-hours: 24 # 默认封锁时长(小时)
+    log-retention: 60  # 日志保留时间(分钟)
