@@ -52,5 +52,5 @@ while True:
     conn.commit()
     print(f"[{now}] 随机压力完成")
 
-    # 随机休息 30-180 秒（模拟人类/业务随机）
+    # 随机休息 30-180 秒
     time.sleep(random.randint(30, 60))
