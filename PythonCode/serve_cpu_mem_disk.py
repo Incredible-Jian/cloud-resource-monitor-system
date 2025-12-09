@@ -68,7 +68,7 @@ def predict():
         mem_forecast = mem_model.predict(future_df)
         disk_forecast = disk_model.predict(future_df)
 
-        # 获取预测结果（最后一个预测值）
+        # 获取预测结果
         return jsonify({
             "cpu": round(cpu_forecast.tail(1)['yhat'].values[0], 1),
             "mem": round(mem_forecast.tail(1)['yhat'].values[0], 1),
