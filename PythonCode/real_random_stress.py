@@ -5,9 +5,10 @@ import numpy as np
 import psutil
 import pymysql
 from datetime import datetime
+from config import database_config
 
 # ---------- 数据库 ----------
-conn = pymysql.connect(host='localhost', user='root', password='123456', db='mymonitor', charset='utf8mb4')
+conn = pymysql.connect(**database_config())
 cur = conn.cursor()
 
 # ---------- 随机压力函数 ----------
@@ -52,5 +53,5 @@ while True:
     conn.commit()
     print(f"[{now}] 随机压力完成")
 
-    # 随机休息 30-180 秒
+    # 随机休息 30-180 秒（模拟人类/业务随机）
     time.sleep(random.randint(30, 60))

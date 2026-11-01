@@ -4,26 +4,26 @@ import pandas as pd
 import psutil
 from datetime import datetime, timedelta
 import os
+from functools import lru_cache
+from config import MODEL_DIR
 
 app = Flask(__name__)
 
-# 加载模型 - 修改为C盘专用模型
-cpu_model = joblib.load('models/prophet_cpu.pkl')
-mem_model = joblib.load('models/prophet_mem.pkl')
-disk_model = joblib.load('models/prophet_disk.pkl')
+@lru_cache(maxsize=1)
+def load_models():
+    """Resolve model paths independently of the current working directory."""
+    return tuple(joblib.load(MODEL_DIR / f"prophet_{name}.pkl")
+                 for name in ("cpu", "mem", "disk"))
+
+
+def disk_path():
+    return os.environ.get("MONITOR_DISK", "C:\\" if os.name == "nt" else "/")
 
 def get_c_disk_usage():
-    """获取C盘使用情况"""
-    for partition in psutil.disk_partitions():
-        if 'c:' in partition.mountpoint.lower():
-            usage = psutil.disk_usage(partition.mountpoint)
-            return {
-                'total': usage.total,
-                'used': usage.used,
-                'free': usage.free,
-                'percent': usage.percent
-            }
-    raise Exception("C盘未找到")
+    """获取配置目录所在磁盘的使用情况（保留原函数名兼容调用）。"""
+    usage = psutil.disk_usage(disk_path())
+    return {'total': usage.total, 'used': usage.used,
+            'free': usage.free, 'percent': usage.percent}
 
 @app.route("/current-usage", methods=['GET'])
 def current_usage():
@@ -41,7 +41,19 @@ def current_usage():
 def predict():
     """预测C盘未来资源使用"""
     try:
-        hours = min(24, max(1, int(request.args.get("hours", 1))))
+        hours = int(request.args.get("hours", "1"))
+    except (ValueError, TypeError):
+        return jsonify({"error": "hours must be an integer between 1 and 24"}), 400
+    if not 1 <= hours <= 24:
+        return jsonify({"error": "hours must be an integer between 1 and 24"}), 400
+
+    try:
+        cpu_model, mem_model, disk_model = load_models()
+    except Exception:
+        app.logger.exception("Cannot load prediction models")
+        return jsonify({"error": "Prediction models unavailable; train compatible models first"}), 503
+
+    try:
 
         # 获取当前C盘数据
         disk_usage = get_c_disk_usage()
@@ -68,7 +80,7 @@ def predict():
         mem_forecast = mem_model.predict(future_df)
         disk_forecast = disk_model.predict(future_df)
 
-        # 获取预测结果
+        # 获取预测结果（最后一个预测值）
         return jsonify({
             "cpu": round(cpu_forecast.tail(1)['yhat'].values[0], 1),
             "mem": round(mem_forecast.tail(1)['yhat'].values[0], 1),
@@ -88,14 +100,20 @@ def disk_details():
             "used_gb": round(usage['used'] / (1024**3), 2),
             "free_gb": round(usage['free'] / (1024**3), 2),
             "percent": usage['percent'],
-            "mountpoint": "C:"
+            "mountpoint": disk_path()
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route("/health", methods=['GET'])
 def health():
-    return jsonify({"status": "ok", "models_loaded": bool(cpu_model and mem_model and disk_model)})
+    try:
+        load_models()
+    except Exception:
+        app.logger.exception("Prediction model health check failed")
+        return jsonify({"status": "unavailable", "models_loaded": False}), 503
+    return jsonify({"status": "ok", "models_loaded": True})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host=os.environ.get('FLASK_HOST', '127.0.0.1'),
+            port=int(os.environ.get('FLASK_PORT', '5000')))

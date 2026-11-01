@@ -5,12 +5,13 @@ from prophet.diagnostics import cross_validation, performance_metrics
 from sklearn.model_selection import ParameterGrid
 import joblib
 import pymysql
+from config import MODEL_DIR, database_config
 
 # 确保模型目录存在
-os.makedirs('models', exist_ok=True)
+MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
 # 数据库连接
-conn = pymysql.connect(host='localhost', user='root', password='123456', db='mymonitor', charset='utf8mb4')
+conn = pymysql.connect(**database_config())
 
 # 参数网格
 param_grid = {
@@ -45,7 +46,7 @@ def train_model(query, model_name, y_column):
     print(f"Best parameters for {model_name}: {best_params}")
     model = Prophet(**best_params)
     model.fit(df)
-    joblib.dump(model, f'models/{model_name}.pkl')
+    joblib.dump(model, MODEL_DIR / f'{model_name}.pkl')
 
 # 训练 CPU 模型
 train_model("SELECT mydate AS ds, cpu_id AS y FROM monitor ORDER BY mydate", 'prophet_cpu', 'cpu_id')
@@ -56,4 +57,5 @@ train_model("SELECT mydate AS ds, ROUND(mem_used*100.0/mem_total,2) AS y FROM mo
 # 训练 磁盘 模型
 train_model("SELECT mydate AS ds, disk_rate AS y FROM monitor ORDER BY mydate", 'prophet_disk', 'disk_rate')
 
-print("✅ 所有模型训练完成，共 12000+ 条")
+conn.close()
+print("所有模型训练完成；训练数据量以数据库实际记录为准。")
