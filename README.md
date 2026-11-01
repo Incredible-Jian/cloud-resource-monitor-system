@@ -1,5 +1,12 @@
 # 云资源监控与异常访问控制系统
 
+[简体中文](README.md) | [English](README.en.md)
+
+![Java](https://img.shields.io/badge/Java-8-orange)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-2.7.3-6DB33F?logo=springboot&logoColor=white)
+![Flask](https://img.shields.io/badge/API-Flask-000000?logo=flask)
+![Prophet](https://img.shields.io/badge/Forecasting-Prophet-3776AB)
+
 基于 Spring Boot、MyBatis 和 Flask 的资源监控课程项目，采集 CPU、内存与磁盘使用情况，通过 Prophet 时间序列模型预测资源变化，并提供访问日志与 IP 封禁管理。
 
 ## 已实现功能
@@ -10,7 +17,7 @@
 - 访问日志记录、访问频率检测、IP 封禁与解封。
 - 用户登录及用户管理。
 
-当前源码没有提供 LSTM、Drools、Docker 部署或邮件/钉钉告警实现。预测结果用于演示，未提供独立测试集上的精度报告。
+资源预测采用 Prophet，访问控制基于访问频率规则。预测结果用于演示，未提供独立测试集上的精度报告。
 
 ## 目录与技术
 
@@ -85,8 +92,20 @@ mvn compile spring-boot:run
 
 `insertdata.py` 会写入数据库，`real_random_stress.py` 会持续产生 CPU/内存负载，二者均不是日常启动步骤。
 
+## 验证
+
+从仓库根目录运行：
+
+```powershell
+python -m unittest discover -s PythonCode -p test_service.py -v
+```
+
+现有 8 项测试使用模拟模型和资源读数，覆盖参数校验、模型不可用、健康检查、预测时长、磁盘路径、数据库环境变量与模型文件路径。本轮整理中测试通过；完整 Java 构建、数据库联调和真实模型精度尚未验证。
+
 ## 项目边界
 
 这是课程演示代码。登录仍使用直接密码匹配，生产使用前还需完善密码哈希、身份鉴权、权限校验和部署配置。数据库初始化脚本、模型复现实验及界面截图仍待补充。
+
+## 许可证
 
 仓库尚未指定许可证；第三方依赖沿用各自许可证。
